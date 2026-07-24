@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arena Tracker</title>
+<meta name="description" content="Estadísticas del modo Arena de League of Legends: qué campeones, aumentos e ítems rinden mejor. App de escritorio para seguir y mejorar tu propio juego." />
+<link rel="icon" href="logo.png" />
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #070a0f;
+    --panel: #131a24;
+    --line: #1c2531;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --gold: #c8aa6e;
+    --gold-soft: rgba(200, 170, 110, 0.16);
+    --done: #35d07f;
+    --miss: #d1495b;
+    --maxw: 1080px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1100px 520px at 78% -8%, rgba(200, 170, 110, 0.10), transparent 60%),
+      radial-gradient(900px 500px at 8% 12%, rgba(46, 160, 67, 0.05), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---- Header ---- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(10, 14, 20, 0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav { display: flex; align-items: center; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 32px; height: 32px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)); }
+  .brand b {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 4px;
+  }
+  .nav .spacer { flex: 1; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--gold);
+    color: #1a1207;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: filter 0.15s ease, transform 0.12s ease;
+    white-space: nowrap;
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn.small { padding: 8px 14px; font-size: 13px; }
+  .btn.ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--line);
+  }
+  .btn.ghost:hover { border-color: rgba(200, 170, 110, 0.5); color: var(--gold); filter: none; }
+
+  /* ---- Hero ---- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+    padding: 84px 0 72px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 22px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--done); box-shadow: 0 0 7px var(--done); }
+  .hero h1 {
+    margin: 0 0 18px;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.06;
+    letter-spacing: -0.5px;
+    font-weight: 800;
+    text-wrap: balance;
+  }
+  .hero h1 span { color: var(--gold); }
+  .hero p.lead {
+    margin: 0 0 30px;
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 46ch;
+  }
+  .cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .cta-note { font-size: 12.5px; color: var(--muted); }
+
+  /* ---- Mock app window ---- */
+  .mock {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #12161d;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+  .mock-bar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mock-bar img { width: 22px; height: 22px; }
+  .mock-bar b { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .mock-bar .wc { margin-left: auto; display: flex; gap: 6px; }
+  .mock-bar .wc i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255, 255, 255, 0.12); }
+  .mock-hero {
+    position: relative;
+    height: 150px;
+    background-color: #1b2430;
+    background-image: url("https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Brand_0.jpg");
+    background-size: cover;
+    background-position: center 24%;
+  }
+  .mock-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(18, 22, 29, 0.1) 25%, rgba(18, 22, 29, 0.72) 68%, #12161d 100%);
+  }
+  .mock-hero .txt { position: absolute; left: 18px; bottom: 12px; z-index: 2; }
+  .mock-hero h3 { margin: 0 0 6px; font-size: 20px; color: #fff; }
+  .mock-hero .kpis { display: flex; gap: 14px; font-size: 11px; color: var(--muted); }
+  .mock-hero .kpis b { color: var(--text); }
+  .mock-body { padding: 14px 16px 16px; }
+  .mock-th {
+    display: grid;
+    grid-template-columns: 1fr 46px 56px 56px;
+    gap: 10px;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    padding: 0 10px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .mock-th .c { text-align: center; }
+  .mock-tr {
+    display: grid;
+    grid-template-columns: 1fr 46px 56px 56px;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 10px;
+    margin-top: 5px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid transparent;
+    font-size: 12.5px;
+  }
+  .mock-tr.oro { border-left-color: rgba(224, 180, 92, 0.8); }
+  .mock-tr.prismatico { border-left-color: rgba(167, 160, 250, 0.85); }
+  .mock-tr.plata { border-left-color: rgba(185, 196, 207, 0.5); }
+  .mock-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .mock-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mock-ico {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    object-fit: cover;
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .mock-ico.prism { border-color: rgba(178, 170, 252, 0.9); box-shadow: 0 0 8px rgba(160, 175, 240, 0.4); }
+  .mock-tr .c { text-align: center; }
+  .mock-tr .muted { color: var(--muted); font-size: 11.5px; }
+  .tier {
+    display: inline-block;
+    min-width: 26px;
+    padding: 2px 7px;
+    text-align: center;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: #0b0f15;
+  }
+  .tier.sp { background: #35d07f; }
+  .tier.s { background: #5fd38d; }
+  .tier.a { background: #a5cf5d; }
+  .tier.b { background: #d9c455; }
+
+  /* ---- Section base ---- */
+  section { padding: 40px 0; }
+  .sec-head { text-align: center; max-width: 620px; margin: 0 auto 42px; }
+  .sec-head .k {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .sec-head h2 { margin: 10px 0 12px; font-size: 30px; letter-spacing: -0.3px; text-wrap: balance; }
+  .sec-head p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+  /* ---- Features ---- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .feat {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 20px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .feat:hover { border-color: rgba(200, 170, 110, 0.4); transform: translateY(-3px); }
+  .feat .ic {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--gold-soft);
+    border: 1px solid rgba(200, 170, 110, 0.3);
+    margin-bottom: 16px;
+  }
+  .feat .ic svg { width: 20px; height: 20px; stroke: var(--gold); fill: none; stroke-width: 1.7; }
+  .feat h3 { margin: 0 0 8px; font-size: 16px; }
+  .feat p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+  /* ---- Download band ---- */
+  .band {
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 52px 28px;
+    background:
+      radial-gradient(600px 240px at 50% -20%, rgba(200, 170, 110, 0.12), transparent 65%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+  }
+  .band img { width: 54px; height: 54px; margin-bottom: 18px; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)); }
+  .band h2 { margin: 0 0 10px; font-size: 28px; letter-spacing: -0.3px; }
+  .band p { margin: 0 auto 26px; color: var(--muted); max-width: 44ch; font-size: 15px; }
+  .band .req { margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+
+  /* ---- Footer ---- */
+  footer {
+    border-top: 1px solid var(--line);
+    margin-top: 40px;
+    padding: 34px 0 46px;
+  }
+  footer .brand b { color: var(--muted); }
+  .disclaimer {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 90ch;
+  }
+  .disclaimer strong { color: #aeb9c4; font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; padding: 56px 0 48px; }
+    .features { grid-template-columns: 1fr; }
+    .nav .btn.ghost { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <img src="logo.png" alt="" />
+      <b>Arena Tracker</b>
+    </a>
+    <span class="spacer"></span>
+    <a class="btn ghost small" href="#features">Qué hace</a>
+    <a class="btn small" href="#descargar" style="margin-left:12px">Descargar</a>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div>
+        <span class="eyebrow"><span class="dot"></span> Modo Arena · League of Legends</span>
+        <h1>Dominá el <span>Arena</span> con datos reales.</h1>
+        <p class="lead">
+          Una app de escritorio que te muestra qué campeones, aumentos e ítems rinden
+          mejor — a partir de miles de partidas de Arena — para seguir tu progreso y
+          mejorar tu propio juego.
+        </p>
+        <div class="cta-row">
+          <a class="btn" href="#descargar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1207" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Descargar para Windows
+          </a>
+          <span class="cta-note">Gratis · Windows 10 y 11</span>
+        </div>
+      </div>
+
+      <!-- Mock de la app -->
+      <div class="mock" aria-hidden="true">
+        <div class="mock-bar">
+          <img src="logo.png" alt="" />
+          <b>Arena Tracker</b>
+          <span class="wc"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mock-hero">
+          <div class="txt">
+            <h3>Brand</h3>
+            <div class="kpis">
+              <span><b>62.4%</b> top 4</span>
+              <span><b>18.1%</b> 1er puesto</span>
+              <span><b>4.473</b> partidas</span>
+            </div>
+          </div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-th">
+            <span>Aumento / Ítem</span>
+            <span class="c">Tier</span>
+            <span class="c">Top 4</span>
+            <span class="c">Pick %</span>
+          </div>
+          <div class="mock-tr prismatico">
+            <span class="mock-name"><img class="mock-ico prism" src="https://ddragon.leagueoflegends.com/cdn/16.14.1/img/item/3089.png" alt="" /> <span>Sombrero de Rabadón</span></span>
+            <span class="c"><span class="tier sp">S+</span></span>
+            <span class="c">71.2%</span>
+            <span class="c muted">34.5%</span>
+          </div>
+          <div class="mock-tr oro">
+            <span class="mock-name"><img class="mock-ico" src="https://ddragon.leagueoflegends.com/cdn/16.14.1/img/item/6653.png" alt="" /> <span>Tormento de Liandry</span></span>
+            <span class="c"><span class="tier s">S</span></span>
+            <span class="c">66.8%</span>
+            <span class="c muted">28.0%</span>
+          </div>
+          <div class="mock-tr oro">
+            <span class="mock-name"><img class="mock-ico" src="https://ddragon.leagueoflegends.com/cdn/16.14.1/img/item/3157.png" alt="" /> <span>Reloj de Arena de Zhonya</span></span>
+            <span class="c"><span class="tier a">A</span></span>
+            <span class="c">61.3%</span>
+            <span class="c muted">41.2%</span>
+          </div>
+          <div class="mock-tr plata">
+            <span class="mock-name"><img class="mock-ico" src="https://ddragon.leagueoflegends.com/cdn/16.14.1/img/item/3135.png" alt="" /> <span>Báculo del Vacío</span></span>
+            <span class="c"><span class="tier b">B</span></span>
+            <span class="c">54.9%</span>
+            <span class="c muted">12.6%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section id="features">
+      <div class="sec-head">
+        <div class="k">Qué hace</div>
+        <h2>Todo lo que necesitás para el Arena, en una ventana.</h2>
+        <p>Datos agregados de partidas públicas, presentados claros y al instante.</p>
+      </div>
+      <div class="features">
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+          <h3>Estadísticas por campeón</h3>
+          <p>Qué aumentos e ítems funcionan mejor con cada campeón, con tier list, porcentaje de top 4 y cantidad de partidas.</p>
+        </div>
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+          <h3>Overlay en partida</h3>
+          <p>La build recomendada del campeón que estás jugando, sobre el juego, sin salir de la partida.</p>
+        </div>
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></div>
+          <h3>Filtro por región</h3>
+          <p>Compará el rendimiento por región — LAS, NA, Corea, EUW y más — para ver qué rinde donde vos jugás.</p>
+        </div>
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Seguí tu colección</h3>
+          <p>Qué campeones ya ganaste en 1er puesto esta temporada y cuáles te faltan, de un vistazo.</p>
+        </div>
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg></div>
+          <h3>Al instante</h3>
+          <p>Se actualiza solo al terminar cada partida. Sin configurar nada, sin pegar códigos ni claves.</p>
+        </div>
+        <div class="feat">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+          <h3>Solo lectura</h3>
+          <p>Nunca toca el juego ni tu cuenta: solo lee tu historial público. Seguro y sin riesgo.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOWNLOAD -->
+    <section id="descargar">
+      <div class="band">
+        <img src="logo.png" alt="" />
+        <h2>Descargá Arena Tracker</h2>
+        <p>Instalador para Windows. Lo abrís y empieza a seguir tus partidas al instante.</p>
+        <a class="btn" href="https://github.com/CabaNicolas/arena-tracker-app/releases/latest/download/Arena-Tracker-Setup.exe">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1207" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Descargar para Windows
+        </a>
+        <div class="req">Windows 10 / 11 · ~90 MB</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="logo.png" alt="" style="width:26px;height:26px" /> <b>Arena Tracker</b></a>
+    <p class="disclaimer">
+      <strong>Arena Tracker no está afiliado, asociado, autorizado ni respaldado por Riot Games, ni es un producto oficial de Riot Games.</strong>
+      League of Legends y Riot Games son marcas registradas de Riot Games, Inc. Los materiales del juego utilizados
+      pertenecen a Riot Games, Inc. Arena Tracker usa la Riot Games API únicamente para mostrar estadísticas y ayudar a
+      los jugadores a evaluar y mejorar su propio juego.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
